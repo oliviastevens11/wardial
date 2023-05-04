@@ -218,8 +218,8 @@ async def _wardial_async(
         # Modify the code to use the `asyncio.gather`
         # function to enable concurrency.
         results = []
-        for host in hosts:
-            results.append(await is_server_at_host(session, host))
+        tasks = [is_server_at_host(session, host) for host in hosts]
+        results = await asyncio.gather(*tasks)
         return results
 
 
