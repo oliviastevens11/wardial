@@ -47,8 +47,10 @@ def enumerate_ips(start_ip, n):
     >>> list(enumerate_ips('8.8.8.8', 10))
     ['8.8.8.8', '8.8.8.9', '8.8.8.10', '8.8.8.11', '8.8.8.12', '8.8.8.13', '8.8.8.14', '8.8.8.15', '8.8.8.16', '8.8.8.17']
 
-    The following tests ensure that the correct number of ips get returned as a generator, and not a list.
-    Ensuring that the return type is a generator is a proxy for testing for space efficiency of the function.
+    The following tests ensure that the correct number
+    of ips get returned as a generator, and not a list.
+    Ensuring that the return type is a generator is a
+    proxy for testing for space efficiency of the function.
 
     >>> type(enumerate_ips('8.8.8.8', 10))
     <class 'generator'>
@@ -67,8 +69,10 @@ def enumerate_ips(start_ip, n):
 
 def netmask_to_ips(netmask):
     '''
-    A netmask is a convenient shorthand for describing a range of consecutive ip addresses.
-    For details on the format, see: <https://www.hacksplaining.com/glossary/netmasks>
+    A netmask is a convenient shorthand for
+    describing a range of consecutive ip addresses.
+    For details on the format, see:
+    <https://www.hacksplaining.com/glossary/netmasks>
 
     Google is assigned the following netblock (among many others as well):
 
@@ -115,23 +119,24 @@ def netmask_to_ips(netmask):
 
     ip_str, mask_str = netmask.split('/')
     octets = ip_str.split('.')
-    ip_32bit =  int(octets[0]) << 24
+    ip_32bit = int(octets[0]) << 24
     ip_32bit += int(octets[1]) << 16
     ip_32bit += int(octets[2]) << 8
     ip_32bit += int(octets[3])
 
     mask = int(mask_str)
     mask_32bit = 0
-    for i in range(32,32-mask-1,-1):
+    for i in range(32, 32-mask-1, -1):
         mask_32bit += 1 << i
 
     base_ip = ip_32bit & mask_32bit
     octet0 = (base_ip >> 24) % 256
     octet1 = (base_ip >> 16) % 256
-    octet2 = (base_ip >>  8) % 256
-    octet3 = (base_ip      ) % 256
+    octet2 = (base_ip >> 8) % 256
+    octet3 = (base_ip) % 256
 
-    start_ip = str(octet0) + '.' + str(octet1) + '.' + str(octet2) + '.' + str(octet3)
+    start_ip = str(octet0) + '.' + str(octet1) + \
+        '.' + str(octet2) + '.' + str(octet3)
     num_ips = 2**(32-mask)
 
     return enumerate_ips(start_ip, num_ips)
@@ -139,23 +144,25 @@ def netmask_to_ips(netmask):
 
 async def is_server_at_host(session, host, schema='http'):
     '''
-    Return True if a web server at `host` responds to the specified `schema`.
-    The `session` variable is assumed to be a properly initialized `aiohttp.ClientSession` object.
+    Return True if a web server at `host`
+    responds to the specified `schema`.
+    The `session` variable is assumed to
+    be a properly initialized `aiohttp.ClientSession` object.
     '''
     url = schema + '://' + host
     try:
-        async with session.get(url, allow_redirects=False) as resp:
+        async with session.get(url, allow_redirects=False):
             logging.info('server at '+url)
             return True
-    except ( aiohttp.client_exceptions.ClientConnectorError
-           , aiohttp.client_exceptions.ServerDisconnectedError
-           , asyncio.TimeoutError
-           ) as e:
+    except (aiohttp.client_exceptions.ClientConnectorError,
+            aiohttp.client_exceptions.ServerDisconnectedError,
+            asyncio.TimeoutError) as e:
         logging.debug('no server at '+url)
         return False
 
 
-async def _wardial_async(hosts, max_connections=500, timeout=10, schema='http'):
+async def _wardial_async(
+        hosts, max_connections=500, timeout=10, schema='http'):
     '''
     For each host in `hosts`, check whether there is a server.
     Returns a list of Bools the same length as `hosts.
@@ -168,17 +175,21 @@ async def _wardial_async(hosts, max_connections=500, timeout=10, schema='http'):
     >>> loop = asyncio.new_event_loop()
     >>> loop.run_until_complete(_wardial_async(['google.com']))
     [True]
-    >>> loop.run_until_complete(_wardial_async(['google.com', 'bad-domain-name', 'microsoft.com']))
+    >>> loop.run_until_complete(_wardial_async(['google.com', 'bad- \
+            domain-name', 'microsoft.com']))
     [True, False, True]
     >>> loop.close()
 
     NOTE:
-    Testing IO functions is made extra hard because they rely on IO performing correctly.
-    The tests above won't work if the google.com or microsoft.com webpages go down.
+    Testing IO functions is made extra hard
+    because they rely on IO performing correctly.
+    The tests above won't work if the
+    google.com or microsoft.com webpages go down.
 
     NOTE:
     This is a helper function for the wardial function.
-    In python, functions prefixed with an underscore are intended to be thought of as "private" or "internal" functions,
+    In python, functions prefixed with an underscore
+    are intended to be thought of as "private" or "internal" functions,
     and not as functions that should be called directly by a user.
     '''
     connector = aiohttp.TCPConnector(
@@ -187,7 +198,7 @@ async def _wardial_async(hosts, max_connections=500, timeout=10, schema='http'):
         verify_ssl=False,
         )
     headers = {
-        'host': 'placeholder', # some servers require a host value be set
+        'host': 'placeholder',  # some servers require a host value be set
         'user-agent': 'CMC WarDialer',
         }
     timeout = aiohttp.ClientTimeout(
@@ -201,12 +212,14 @@ async def _wardial_async(hosts, max_connections=500, timeout=10, schema='http'):
             connector=connector,
             ) as session:
         # FIXME (Task 2):
-        # The following code is "correct" in the sense that it gets the right results.
+        # The following code is "correct" in the
+        # sense that it gets the right results.
         # The problem is that it is not concurrent.
-        # Modify the code to use the `asyncio.gather` function to enable concurrency.
+        # Modify the code to use the `asyncio.gather`
+        # function to enable concurrency.
         results = []
         for host in hosts:
-            results.append(await is_server_at_host(session,host))
+            results.append(await is_server_at_host(session, host))
         return results
 
 
@@ -226,14 +239,21 @@ def wardial(hosts, **kwargs):
     # You should create a new event loop,
     # and use this event loop to call the `_wardial_async` function.
     # Ensure that all of the kwargs parameters get passed to `_wardial_async`.
-    # You will have to do some post-processing of the results of this function to convert the output.
+    # You will have to do some post-processing
+    # of the results of this function to convert the output.
+    loop = asyncio.new_event_loop()
+    results = loop.run_until_complete(_wardial_async(hosts, **kwargs))
+    loop.close()
+    return [host for host, is_server_running in zip(hosts, results)
+            if is_server_running]
     return []
 
-if __name__=='__main__':
 
+if __name__ == '__main__':
     # process the cmd line args
     import argparse
-    parser = argparse.ArgumentParser(description='Scan a section of the internet for webservers')
+    parser = argparse.ArgumentParser(description='Scan a section of the \
+                                                  internet for webservers')
     parser.add_argument('netmask')
     parser.add_argument('--timeout', type=int, default=10)
     parser.add_argument('--max_connections', type=int, default=500)
@@ -252,5 +272,7 @@ if __name__=='__main__':
 
     # run the wardial
     ips = netmask_to_ips(args.netmask)
-    alive_ips = wardial(ips, timeout=args.timeout, max_connections=args.max_connections, schema=args.schema)
+    alive_ips = wardial(ips, timeout=args.timeout,
+                        max_connections=args.max_connections,
+                        schema=args.schema)
     print('total ips found =', len(alive_ips))
